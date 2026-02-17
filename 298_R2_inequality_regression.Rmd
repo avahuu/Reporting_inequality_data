@@ -198,13 +198,6 @@ If you want to look at scatterplots for multiple variables, use the pairs comman
 pairs(~ gni + healthexp + skul, data = ind)
 ```
 
-### Practice with the schools data
-
-1. Descriptives
-2. Histograms
-3. Correlation matrix
-4. Scatterplot(s)
-
 ### Regression
 
 Once you've identified the variables with the strongest relationship, a regression shows how strongly two or more variables are related and helps you describe the relationship. We're sticking with a basic linear model, but there are many more types of regression.
@@ -225,6 +218,7 @@ We have to save our model in a data frame to get the rest of the stats we need u
 ```
 ind_mod1 <- lm(formula = healthexp ~ gni, data = ind)
 summary(ind_mod1)
+options(scipen=999)
 ```
 
 Let's look at the results:
@@ -276,24 +270,51 @@ hist(schools$p_passed)
 
 plot(schools$poorpct,schools$p_passed)
 
-plot with regression line:
 
-school_mod1 <- lm(formula = p_passed ~ poorpct, data = schools)
-summary(school_mod1)
+```{r}
+options(scipen=999)
+schools_mod1 <- lm(formula = p_passed ~ poorpct, data = schools)
+summary(schools_mod1)
+```
+
+```{r}
+options(scipen=999)
+schools_mod2 <- lm(formula = p_passed ~ poorpct+p_minority, data = schools)
+summary(schools_mod2)
+```
+
 
 If you want to try a scatter plot with the plot line, first plot the variables (x-y), add labels and generate the line using your model. We plot poorpct, the independent variable on the X axis and p_passed on the Y axis. We'll use filled in circles for our plot points (pch=19) and we'll add a regression line.
 
 
 plot(schools$poorpct, schools$p_passed, main="Scatterplot",
    xlab="poorpct", ylab="p_passed", pch=19) 
-abline(school_mod1, col="red") # regression line (y~x)
+abline(schools_mod1, col="red") # regression line (y~x)
+
+```{r}
+plot(
+  schools$poorpct,
+  schools$p_passed,
+  main = "Schools with Higher Poverty Rates Tend to Have Lower Pass Rates",
+  xlab = "Percent of Students in Poverty",
+  ylab = "Percent Passed",
+  pch = 19,
+  col = rgb(0.2, 0.4, 0.6, 0.6),  
+  cex = 1.2
+)
+
+abline(schools_mod1, col = "darkred", lwd = 2)
+grid()
+```
 
 
 ## Predicted and residual values
 
 If we want to add the "predicted value" to our data we can use the modelr package. That's the value that falls on the line. Given the poorpct, that's what a school "should" have. We also can add residuals, a fancy word for the difference between predicted and actual values.
 
-schools_pr <- schools %>% add_predictions(school_mod1) %>% add_residuals(school_mod1)
+schools_pr <- schools %>% 
+  add_predictions(schools_mod1) %>% 
+  add_residuals(schools_mod1)
 
 We can take it one step further and standardize the residuals, so we know which ones are true outliers.
 

@@ -1,6 +1,6 @@
 ---
 title: "Tidy Census"
-author: "jl"
+author: "Ava"
 date: "2026-02-17"
 output: html_document
 ---
@@ -11,30 +11,6 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-
-### Housekeeping
-
-If you haven't done so yet, request an API key from the Census Bureau:  https://api.census.gov/data/key_signup.html You'll get an email to activate. You may have to try activating a few times. Once you get the key, save it. You'll need it later.
-
-Create a directory for your files. Then set your working directory. 
-
-**setwd("*FILE PATH*")**
-
-
-Or you can use the drop-down menu: **Session -> Set Working Directory -> Choose Directory**
-
-Make sure packages are installed and loaded. If you installed them previously, you don't need to again. Think of install.packages like going to the hardware store to buy a tool. You don't go back every time you need that tool.  
-
-**install.packages("*package_name*")**.  # note the quotes here
-
-
-install.packages("tidyverse") #main package for analysis
-install.packages("dplyr") #R's version of SQL
-install.packages("ggplot2") #for graphics
-install.packages("knitr") #for creating results files
-install.packages("psych") #for stats functions
-install.packages("tidycensus") #for grabbing census data
 
 
 We then use Library to get that that tool out of your toolbox. 
@@ -202,9 +178,39 @@ Put it all together and save it to a new data frame!
 
 Steps:
 1. Pull the data 
+
+  cacounty <- get_acs(geography = "county", 
+                variables = racevars,
+                state = "CA",
+                year = 2023)
+                
+
+
 2. Make it wider
+
+wide_cacounty <- cacounty %>%
+    pivot_wider(names_from = variable, values_from = c(estimate, moe))
+
+
+
 3. Select and rename columns
+
+  pretty_cacounty <- wide_cacounty %>% dplyr::select(GEOID,NAME,pop=estimate_B03002_001, not_hisp = estimate_B03002_002, white = estimate_B03002_003, black = estimate_B03002_004, am_ind = estimate_B03002_005, asian = estimate_B03002_006, pac_isl = estimate_B03002_007, other = estimate_B03002_008, mult = estimate_B03002_009, hispanic = estimate_B03002_012)
+
+
 4. Compute percentages
+
+
+ cacounty_fin <- pretty_cacounty %>% mutate(pct_white=round(100*(white/pop),1)) %>% 
+                 mutate(pct_black=round(100*(black/pop),1)) %>% 
+                 mutate(pct_am_ind=round(100*(am_ind/pop),1)) %>% 
+                 mutate(pct_asian=round(100*(asian/pop),1)) %>% 
+                 mutate(pct_pac_isl=round(100*(pac_isl/pop),1)) %>% 
+                 mutate(pct_other=round(100*(other/pop),1)) %>% 
+                 mutate(pct_mult=round(100*(mult/pop),1)) %>% 
+                 mutate(pct_hisp=round(100*(hispanic/pop),1))
+
+
 5. Admire your new data frame
 
 
