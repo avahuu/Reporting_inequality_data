@@ -1,0 +1,228 @@
+---
+title: "U.S. Census Demographics: Race & Age in California"
+author: "Ava Hu"
+date: "February 2026"
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float: true
+    code_folding: show
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Overview
+
+This analysis uses the **U.S. Census Bureau's American Community Survey (ACS)** to examine demographic patterns across California — from county-level summaries to census tract-level detail. Using the `tidycensus` R package, we pull data directly from the Census API and calculate racial/ethnic composition and age distributions.
+
+**Focus areas:**
+- Median age by sex across California counties
+- Racial and ethnic composition at the census tract level (Alameda County)
+- County-level demographic comparisons
+- Joining multi-year Census data to track changes
+
+
+## Setup
+
+```{r library}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(psych)
+library(tidycensus)
+```
+
+> **Note:** This analysis requires a Census API key. You can request one at [api.census.gov](https://api.census.gov/data/key_signup.html) and install it with `census_api_key("YOUR_KEY", install = TRUE)`.
+
+
+## Part I: Age Demographics
+
+### County-Level Median Age
+
+Pulling median age data for all California counties from the 2023 ACS 5-year estimates:
+
+```{r ca-median-age}
+ca <- get_acs(geography = "county",
+              variables = "B01002_001",
+              state = "CA",
+              year = 2023)
+
+ca %>%
+  arrange(desc(estimate)) %>%
+  head(15) %>%
+  kable(caption = "California counties with the highest median age (2023 ACS)")
+```
+
+
+### Tract-Level Age by Sex (Alameda County)
+
+Pulling median age disaggregated by sex at the census tract level:
+
+```{r alameda-age}
+agevars <- c("B01002_001", "B01002_002", "B01002_003")
+
+altrtage <- get_acs(geography = "tract",
+                    variables = agevars,
+                    county = "Alameda",
+                    state = "CA",
+                    year = 2023)
+
+# Pivot from stacked to wide format
+wide_altrtage <- altrtage %>%
+  pivot_wider(names_from = variable, values_from = c(estimate, moe))
+
+# Rename columns for clarity
+pretty_altrtage <- wide_altrtage %>%
+  dplyr::select(GEOID, NAME,
+         medage = estimate_B01002_001,
+         male_age = estimate_B01002_002,
+         fem_age = estimate_B01002_003)
+
+kable(head(pretty_altrtage, 15),
+      caption = "Median age by sex for Alameda County census tracts")
+```
+
+
+## Part II: Racial & Ethnic Composition
+
+### Alameda County — Census Tract Level
+
+```{r alameda-race}
+racevars <- c("B03002_001", "B03002_002", "B03002_003", "B03002_004",
+              "B03002_005", "B03002_006", "B03002_007", "B03002_008",
+              "B03002_009", "B03002_012")
+
+alameda <- get_acs(geography = "tract",
+                   variables = racevars,
+                   state = "CA",
+                   county = "Alameda",
+                   year = 2023)
+
+# Pivot and rename
+wide_alameda <- alameda %>%
+  pivot_wider(names_from = variable, values_from = c(estimate, moe))
+
+pretty_alameda <- wide_alameda %>%
+  dplyr::select(GEOID, NAME,
+         pop = estimate_B03002_001,
+         not_hisp = estimate_B03002_002,
+         white = estimate_B03002_003,
+         black = estimate_B03002_004,
+         am_ind = estimate_B03002_005,
+         asian = estimate_B03002_006,
+         pac_isl = estimate_B03002_007,
+         other = estimate_B03002_008,
+         mult = estimate_B03002_009,
+         hispanic = estimate_B03002_012)
+```
+
+### Computing Demographic Percentages
+
+```{r alameda-pct}
+alameda_fin <- pretty_alameda %>%
+  mutate(pct_white = round(100 * (white / pop), 1)) %>%
+  mutate(pct_black = round(100 * (black / pop), 1)) %>%
+  mutate(pct_am_ind = round(100 * (am_ind / pop), 1)) %>%
+  mutate(pct_asian = round(100 * (asian / pop), 1)) %>%
+  mutate(pct_pac_isl = round(100 * (pac_isl / pop), 1)) %>%
+  mutate(pct_other = round(100 * (other / pop), 1)) %>%
+  mutate(pct_mult = round(100 * (mult / pop), 1)) %>%
+  mutate(pct_hisp = round(100 * (hispanic / pop), 1))
+
+kable(head(alameda_fin %>%
+             select(NAME, pop, pct_white, pct_black, pct_asian, pct_hisp, pct_mult), 15),
+      caption = "Racial/ethnic composition by census tract (Alameda County)")
+```
+
+
+### California Counties — Statewide Comparison
+
+```{r ca-race-counties}
+cacounties <- get_acs(geography = "county",
+                      variables = racevars,
+                      state = "CA",
+                      year = 2023)
+
+wide_cacounties <- cacounties %>%
+  pivot_wider(names_from = variable, values_from = c(estimate, moe))
+
+pretty_cacounties <- wide_cacounties %>%
+  dplyr::select(GEOID, NAME,
+         pop = estimate_B03002_001,
+         not_hisp = estimate_B03002_002,
+         white = estimate_B03002_003,
+         black = estimate_B03002_004,
+         am_ind = estimate_B03002_005,
+         asian = estimate_B03002_006,
+         pac_isl = estimate_B03002_007,
+         other = estimate_B03002_008,
+         mult = estimate_B03002_009,
+         hispanic = estimate_B03002_012)
+
+cacounties_fin <- pretty_cacounties %>%
+  mutate(pct_white = round(100 * (white / pop), 1)) %>%
+  mutate(pct_black = round(100 * (black / pop), 1)) %>%
+  mutate(pct_am_ind = round(100 * (am_ind / pop), 1)) %>%
+  mutate(pct_asian = round(100 * (asian / pop), 1)) %>%
+  mutate(pct_pac_isl = round(100 * (pac_isl / pop), 1)) %>%
+  mutate(pct_other = round(100 * (other / pop), 1)) %>%
+  mutate(pct_mult = round(100 * (mult / pop), 1)) %>%
+  mutate(pct_hisp = round(100 * (hispanic / pop), 1))
+
+kable(head(cacounties_fin %>%
+             select(NAME, pop, pct_white, pct_black, pct_asian, pct_hisp) %>%
+             arrange(desc(pop)), 20),
+      caption = "Racial/ethnic composition by county (California, 2023)")
+```
+
+
+## Part III: Joining Multi-Year Census Data
+
+Comparing household income across years to track economic changes:
+
+```{r join-years}
+ca22 <- get_acs(geography = "county",
+                variables = "B19013_001",
+                state = "CA",
+                year = 2022)
+
+ca23 <- get_acs(geography = "county",
+                variables = "B19013_001",
+                state = "CA",
+                year = 2023)
+
+# Join by GEOID and compute year-over-year change
+ca_joined <- ca23 %>%
+  inner_join(ca22, by = "GEOID") %>%
+  select(GEOID, county = NAME.x,
+         hhi_2023 = estimate.x,
+         hhi_2022 = estimate.y) %>%
+  mutate(change = hhi_2023 - hhi_2022,
+         pct_change = round(100 * change / hhi_2022, 1)) %>%
+  arrange(desc(pct_change))
+
+kable(head(ca_joined, 15),
+      caption = "Counties with the largest household income increases (2022–2023)")
+```
+
+```{r join-bottom}
+kable(tail(ca_joined %>% arrange(desc(pct_change)), 10),
+      caption = "Counties with the smallest or negative household income changes (2022–2023)")
+```
+
+
+## Key Takeaways
+
+1. **California is highly diverse**: Racial composition varies dramatically between counties and even within counties at the tract level.
+2. **Age patterns vary geographically**: Median age differs significantly across tracts, reflecting different community characteristics.
+3. **Census data enables temporal analysis**: By joining multi-year ACS data, we can track economic changes at the county level over time.
+4. **The `tidycensus` pipeline**: Pull → Pivot → Select/Rename → Mutate provides a repeatable workflow for Census data analysis.
+
+---
+
+*Data source: U.S. Census Bureau, American Community Survey 5-Year Estimates (2022–2023)*

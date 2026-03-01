@@ -1,0 +1,11 @@
+# R environment
+.Rhistory
+.RData
+.Rproj.user/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Knitted output (regenerate with Knit)
+*.html

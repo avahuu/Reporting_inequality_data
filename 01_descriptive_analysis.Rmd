@@ -1,0 +1,233 @@
+---
+title: "Global Health Inequality: Descriptive Analysis"
+author: "Ava Hu"
+date: "February 2026"
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float: true
+    code_folding: show
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Overview
+
+This analysis explores global health and economic indicators sourced from the **World Health Organization's Global Health Observatory**. The dataset covers 222 countries with the following variables:
+
+| Variable     | Description                                      |
+|-------------|--------------------------------------------------|
+| `country`    | Country name                                     |
+| `code`       | Country code                                     |
+| `gni`        | Gross National Income per capita (USD)            |
+| `skulspend`  | Education expenditures per capita                 |
+| `death`      | Death rate per 1,000                              |
+| `healthexp`  | Health expenditures per capita                    |
+| `unemp`      | Unemployment rate                                 |
+| `water`      | % population with access to clean water           |
+| `skul`       | % enrolled in secondary school                    |
+| `maternal`   | Maternal death rate per 100,000 live births        |
+
+
+## Setup
+
+```{r library}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(psych)
+library(janitor)
+```
+
+## Load Data
+
+```{r load-data}
+ind <- read_csv('data/globalind.csv', col_names = TRUE)
+kable(head(ind, 10), caption = "First 10 rows of the Global Health Indicators dataset")
+```
+
+```{r structure}
+str(ind)
+```
+
+The dataset contains **222 observations** across **10 variables** — 2 character fields (country, code) and 8 numeric indicators.
+
+
+## Data Exploration
+
+### Filtering by Income Level
+
+Countries with GNI per capita exceeding $50,000, sorted by education spending:
+
+```{r high-income}
+ind %>%
+  select(country, code, gni, skulspend) %>%
+  filter(gni >= 50000) %>%
+  arrange(desc(skulspend)) %>%
+  kable(caption = "High-income countries ranked by education spending")
+```
+
+### Key Questions
+
+**Which country has the highest health expenditure per capita?**
+
+```{r highest-healthexp}
+ind %>%
+  select(country, healthexp) %>%
+  arrange(desc(healthexp)) %>%
+  head(10) %>%
+  kable(caption = "Top 10 countries by health expenditure per capita")
+```
+
+**How many countries have unemployment rates above 10%?**
+
+```{r high-unemployment}
+high_unemp <- ind %>%
+  filter(unemp > 10)
+
+cat("Number of countries with unemployment > 10%:", nrow(high_unemp))
+```
+
+**Among countries with 100% clean water access, which has the lowest health expenditure?**
+
+```{r water-healthexp}
+ind %>%
+  select(country, water, healthexp) %>%
+  filter(water == 100) %>%
+  arrange(healthexp) %>%
+  head(10) %>%
+  kable(caption = "Countries with 100% clean water access, ranked by health expenditure")
+```
+
+
+## Summary Statistics
+
+```{r descriptives}
+# Using the psych package for comprehensive descriptive statistics
+describe(ind[3:10]) %>%
+  kable(digits = 2, caption = "Descriptive statistics for all numeric indicators")
+```
+
+Notable observations:
+- The **mean GNI** and **median GNI** may diverge significantly, indicating income inequality across countries.
+- Missing data is present across multiple indicators — handled via `na.rm = TRUE` in calculations.
+
+
+## Correlation Analysis
+
+### Correlation Matrix
+
+```{r correlation-matrix}
+cor_matrix <- round(cor(ind[3:10], use = "pairwise.complete.obs"), 2)
+kable(cor_matrix, caption = "Correlation matrix of global health indicators")
+```
+
+Key findings from the correlation matrix:
+- **GNI and health expenditure** show the strongest positive correlation
+- **Education spending and school enrollment** are positively correlated
+- **Maternal death rate** tends to be negatively correlated with income and health spending
+
+
+## Visualizations
+
+### Distribution of Key Variables
+
+```{r histograms, fig.width=10, fig.height=4}
+par(mfrow = c(1, 2))
+hist(ind$gni, main = "Distribution of GNI per Capita",
+     xlab = "GNI (USD)", col = "steelblue", border = "white")
+hist(ind$healthexp, main = "Distribution of Health Expenditure",
+     xlab = "Health Expenditure (USD)", col = "coral", border = "white")
+```
+
+Both distributions exhibit a **strong positive skew** — most countries cluster at lower values with a long tail toward wealthier nations. A log transformation can normalize these distributions:
+
+```{r histograms-log, fig.width=10, fig.height=4}
+par(mfrow = c(1, 2))
+hist(log10(ind$gni), main = "Log-transformed GNI",
+     xlab = "log10(GNI)", col = "steelblue", border = "white")
+hist(log10(ind$healthexp), main = "Log-transformed Health Expenditure",
+     xlab = "log10(Health Exp)", col = "coral", border = "white")
+```
+
+
+### Scatter Plots
+
+```{r scatter-gni-health, fig.width=8, fig.height=6}
+plot(ind$gni, ind$healthexp,
+     main = "GNI vs. Health Expenditure per Capita",
+     xlab = "Gross National Income per Capita (USD)",
+     ylab = "Health Expenditure per Capita (USD)",
+     pch = 19,
+     col = rgb(0.2, 0.4, 0.6, 0.6),
+     cex = 1.2)
+grid()
+```
+
+The scatter plot confirms the strong positive relationship between national income and health spending.
+
+### Multi-variable Scatter Plot Matrix
+
+```{r pairs-plot, fig.width=8, fig.height=8}
+pairs(~ gni + healthexp + skul, data = ind,
+      main = "Scatter Plot Matrix: GNI, Health Expenditure, School Enrollment")
+```
+
+
+## Schools Dataset Analysis
+
+The California schools dataset provides school-level data including poverty rates, student demographics, and academic performance.
+
+```{r load-schools}
+schools <- read_csv('data/schools.csv', col_names = TRUE)
+```
+
+```{r schools-descriptives}
+describe(schools[5:19]) %>%
+  kable(digits = 2, caption = "Descriptive statistics for schools dataset")
+```
+
+```{r schools-correlation}
+round(cor(schools[5:19], use = "pairwise.complete.obs"), 2) %>%
+  kable(caption = "Correlation matrix for schools variables")
+```
+
+```{r schools-histograms, fig.width=10, fig.height=4}
+par(mfrow = c(1, 2))
+hist(schools$poorpct, main = "Distribution of Poverty Rate",
+     xlab = "% Students in Poverty", col = "tomato", border = "white")
+hist(log10(schools$attendance), main = "Distribution of Attendance (log)",
+     xlab = "log10(Attendance)", col = "mediumpurple", border = "white")
+```
+
+```{r schools-scatter, fig.width=8, fig.height=6}
+plot(schools$p_moved, schools$attendanc,
+     main = "Student Mobility vs. Attendance",
+     xlab = "% Students Moved",
+     ylab = "Attendance Rate",
+     pch = 19,
+     col = rgb(0.6, 0.2, 0.4, 0.5))
+grid()
+```
+
+```{r schools-pairs, fig.width=8, fig.height=8}
+pairs(~ poorpct + p_passed + p_moved, data = schools,
+      main = "Scatter Matrix: Poverty, Pass Rate, Mobility")
+```
+
+
+## Key Takeaways
+
+1. **Income drives health spending**: GNI per capita explains a large proportion of variation in health expenditure across countries.
+2. **Skewed distributions**: Most global indicators are positively skewed, reflecting vast disparities between wealthy and developing nations.
+3. **Education and health are linked**: Countries investing more in education tend to have better health outcomes.
+4. **Poverty impacts education**: In the California schools data, poverty rates are closely tied to academic performance metrics.
+
+---
+
+*Data sources: WHO Global Health Observatory, California Schools Dataset*

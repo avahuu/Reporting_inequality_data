@@ -1,0 +1,189 @@
+---
+title: "Global Health Inequality: Regression Analysis"
+author: "Ava Hu"
+date: "February 2026"
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float: true
+    code_folding: show
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(scipen = 999)
+```
+
+## Overview
+
+Building on the [descriptive analysis](01_descriptive_analysis.html), this notebook explores the **predictive relationships** between global health indicators through linear regression. The primary question: *How strongly does national income predict health expenditure?*
+
+## Setup
+
+```{r library}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(psych)
+library(janitor)
+library(modelr)
+```
+
+## Load Data
+
+```{r load-data}
+ind <- read_csv('data/globalind.csv', col_names = TRUE)
+schools <- read_csv('data/schools.csv', col_names = TRUE)
+```
+
+
+## Part I: Global Indicators
+
+### Reviewing the Strongest Correlation
+
+From the descriptive analysis, GNI and health expenditure showed the strongest correlation. Let's examine this relationship more closely.
+
+```{r scatter-review, fig.width=8, fig.height=6}
+plot(ind$gni, ind$healthexp,
+     main = "GNI vs. Health Expenditure per Capita",
+     xlab = "Gross National Income per Capita (USD)",
+     ylab = "Health Expenditure per Capita (USD)",
+     pch = 19,
+     col = rgb(0.2, 0.4, 0.6, 0.6),
+     cex = 1.2)
+grid()
+```
+
+
+### Simple Linear Regression: GNI → Health Expenditure
+
+A linear model with `healthexp` as the dependent variable and `gni` as the independent variable:
+
+```{r model-1}
+ind_mod1 <- lm(formula = healthexp ~ gni, data = ind)
+summary(ind_mod1)
+```
+
+**Interpretation:**
+
+- **R² = 0.87** — 87% of the variation in health expenditure is explained by GNI alone.
+- **p-value < 0.05** — The relationship is statistically significant.
+- **GNI coefficient ≈ 0.107** — For every $1 increase in GNI per capita, health expenditure increases by approximately $0.11. In practical terms: *for every $10 increase in GNI, health spending rises by about $1.*
+
+
+### Multiple Regression: Adding Unemployment
+
+Does unemployment improve the model?
+
+```{r model-2}
+ind_mod2 <- lm(formula = healthexp ~ gni + unemp, data = ind)
+summary(ind_mod2)
+```
+
+**Result:** Adding unemployment does **not** improve the model — the adjusted R² remains at 0.87 and unemployment's p-value (0.265) is not significant. GNI alone is sufficient.
+
+
+## Part II: California Schools
+
+### Exploring Poverty and Academic Performance
+
+```{r schools-exploration, fig.width=10, fig.height=4}
+par(mfrow = c(1, 2))
+hist(schools$poorpct, main = "Distribution of Poverty Rate",
+     xlab = "% Students in Poverty", col = "tomato", border = "white")
+hist(schools$p_passed, main = "Distribution of Pass Rate",
+     xlab = "% Students Passed", col = "mediumpurple", border = "white")
+```
+
+```{r schools-scatter, fig.width=8, fig.height=6}
+plot(schools$poorpct, schools$p_passed,
+     main = "Schools with Higher Poverty Rates Have Lower Pass Rates",
+     xlab = "Percent of Students in Poverty",
+     ylab = "Percent Passed",
+     pch = 19,
+     col = rgb(0.2, 0.4, 0.6, 0.6),
+     cex = 1.2)
+grid()
+```
+
+
+### Regression: Poverty → Pass Rate
+
+```{r schools-model-1}
+schools_mod1 <- lm(formula = p_passed ~ poorpct, data = schools)
+summary(schools_mod1)
+```
+
+```{r schools-plot-regression, fig.width=8, fig.height=6}
+plot(
+  schools$poorpct,
+  schools$p_passed,
+  main = "Schools with Higher Poverty Rates Tend to Have Lower Pass Rates",
+  xlab = "Percent of Students in Poverty",
+  ylab = "Percent Passed",
+  pch = 19,
+  col = rgb(0.2, 0.4, 0.6, 0.6),
+  cex = 1.2
+)
+abline(schools_mod1, col = "darkred", lwd = 2)
+grid()
+```
+
+
+### Multiple Regression: Poverty + Minority Percentage
+
+```{r schools-model-2}
+schools_mod2 <- lm(formula = p_passed ~ poorpct + p_minority, data = schools)
+summary(schools_mod2)
+```
+
+
+### Residual Analysis
+
+Adding predicted values and residuals to identify outlier schools that perform significantly above or below expectations given their poverty levels:
+
+```{r residuals}
+schools_pr <- schools %>%
+  add_predictions(schools_mod1) %>%
+  add_residuals(schools_mod1)
+
+# Standardize residuals to identify true outliers
+schools_pr$z_score <- as.numeric(scale(schools_pr$resid))
+
+# Schools performing significantly better than expected (z > 2)
+outliers_positive <- schools_pr %>%
+  filter(z_score > 2) %>%
+  select(School, County, poorpct, p_passed, pred, resid, z_score) %>%
+  arrange(desc(z_score))
+
+kable(head(outliers_positive, 10),
+      digits = 2,
+      caption = "Schools performing significantly above expectations (z-score > 2)")
+```
+
+```{r outliers-negative}
+# Schools performing significantly below expected (z < -2)
+outliers_negative <- schools_pr %>%
+  filter(z_score < -2) %>%
+  select(School, County, poorpct, p_passed, pred, resid, z_score) %>%
+  arrange(z_score)
+
+kable(head(outliers_negative, 10),
+      digits = 2,
+      caption = "Schools performing significantly below expectations (z-score < -2)")
+```
+
+
+## Key Takeaways
+
+1. **GNI is a powerful predictor**: A single variable (GNI) explains 87% of variation in health expenditure across countries.
+2. **Adding variables isn't always better**: Unemployment added no predictive value to the model.
+3. **Poverty strongly predicts academic outcomes**: In California schools, poverty rate is significantly associated with lower pass rates.
+4. **Outlier schools tell stories**: Residual analysis reveals schools that defy expectations — both positively and negatively — which can guide further reporting and investigation.
+
+---
+
+*Data sources: WHO Global Health Observatory, California Schools Dataset*

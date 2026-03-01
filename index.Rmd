@@ -1,0 +1,33 @@
+---
+title: "Global Health Inequality Analysis"
+author: "Ava Hu"
+date: "February 2026"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## About This Project
+
+This project analyzes global health and economic indicators, explores statistical relationships through regression modeling, and examines U.S. Census demographics in California. Built with R using data from the WHO Global Health Observatory, California schools datasets, and the U.S. Census Bureau's American Community Survey.
+
+## Analyses
+
+1. **[Descriptive Analysis](01_descriptive_analysis.html)** — Summary statistics, correlations, and distributions across 222 countries
+2. **[Regression Analysis](02_regression_analysis.html)** — Linear modeling of health expenditure predictors and school performance
+3. **[Census Demographics](03_census_demographics.html)** — Racial composition and age patterns in California using ACS data
+
+## Data Sources
+
+- WHO Global Health Observatory
+- California Schools Dataset
+- U.S. Census Bureau, ACS 5-Year Estimates (2022–2023)
+
+---
+
+*Ava Hu · February 2026*

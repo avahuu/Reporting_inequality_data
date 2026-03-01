@@ -9,44 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-
-## Let's get started
-
-Set your working directory. 
-
-**setwd("*FILE PATH*")**
-
-Or you can use the drop-down menu: Session -> Set Working Directory -> Choose Directory
-
-
-R uses tools called "packages" to do certain types of tasks. For example, there are package for mapping, graphics, stats, cleaning data and more.
-
-To install anything, here's the syntax: 
-
-install.packages("package_name")
-
-
-Packages are like tools. You have to go to the hardware store once to get the tool and put it in your toolbox. When you need a tool, you get it out of your toolbox. You don't have to go to the hardware store every time you need something. That said, you may need to upgrade your tool or replace a lost tool and go back to the hardware store. You also might need to ask someone at the store for help. (There's lots of help online!) 
-
-Install (go to hardware store) for these packages:
-
-```
-install.packages("tidyverse") #Working with data
-install.packages("dplyr") #R's version of SQL
-install.packages("ggplot2") #for graphics
-install.packages("knitr") #for creating results files
-install.packages("psych") #stats
-install.packages("tidycensus") #access census data
-install.packages("janitor") #data cleaning tools
-```
-
 Library (get them out of your toolbox)
 
 ```{r library}
@@ -60,67 +22,17 @@ library(tidycensus)
 ```
 
 
-## Important reminders about R
-There are MANY ways to do tasks in R. We'll learn a few, but you may run across more later and new packages come online all the time. 
-
-We'll be doing a sample of some stats we can do in R, but I recommend talking to experts to vet your work.
-
-R is CASE SENSITIVE on everything. R doesn't like spaces in file names or field/column names. You can get around it with "", but it usually is easier to just not use them.
-
-If you run commands, the answer will show up in the console below. Highlight the commands below and hit run or command|enter:
-
-mytot=1+2
-mytot
-
-If we want to create a code chunk, which means R will knit the results and the code for your final document add *{r}* to the top and ``` at top and bottom:
-
-```{r}
-mytot=1+2
-mytot
-```
-
-## Load your data
-
-
-Everything in R needs to get loaded into a "data frame" a sort of workspace so R can deal with it.  We'll use read.csv and because our data has field names, we include this "col_names = TRUE."  We're going to load global indicator data from the Global Health Observatory. With the following columns:
-
- country: country name  
- code: country code  
- gni: gross National Income per capital (in US$)  
- skulspend: education expenditures per capita  
- death: death rate per 1,000  
- healthexp: health expenditures per capita  
- unemp: unemployment rate  
- water: % with clean water  
- skul: % enrolled in secondary school  
- maternal: maternal death rate per 100,000 live births  
+## Load data
 
 
 ```
 ind <- read_csv('globalind.csv', col_names = TRUE) # import global indicator data
 view(ind) #view indicator data
-```
 
-I called my table "ind." You could just as easily have called it Sally, but it wouldn't be as easy to remember.
-
-
-To see how the file is structured, along with record count and sample records use:
-
-```
 str(ind)
 
+
 ```
-We have 222 observations (records) and 10 columns or variables.
-The first two fields - are characters, while the other four are numeric - either integer or double
-
-### Summarizing data 
-
-Summarize the data. Note: Use %>% (pipe symbol) to chain multiple commands. 
-To compare, use ==.
-
-The count function serves as both group by and count unlike SQL or Excel, which require two parts. 
-To make the pipe symbol shift-ctrl-m or shift-cmd-m. See keyboard shortcuts tip sheet (https://support.posit.co/hc/en-us/articles/200711853-Keyboard-Shortcuts) for more info. 
-Use <- to put your results in another data frame.
 
 #Select
 
@@ -187,15 +99,12 @@ ind %>%
 56
 
 
-3. Think of a question to ask on your own - within the country that have 100% clean water, what's the lowest health expenditures per capita
-
 sally <- ind %>% 
   select(country,water,healthexp) %>% 
   filter(water == 100) %>% 
   arrange(healthexp)
   
-  
-  
+
 
 
 Thailand 
@@ -323,19 +232,5 @@ pairs(~poorpct + p_passed + p_moved, data = schools)
 
 ```
 
-
-
-### More practice data
-
-You can use data that's build into R. To see what's available use:
-data()
-
-To start using one of the data sets, use data(name). Let's practice with the cars data:
-
-data(cars)
-view(cars)
-describe(cars)
-cor(cars)
-plot(cars$speed,cars$distance)
 
 
