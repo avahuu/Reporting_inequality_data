@@ -7,5 +7,4 @@
 .DS_Store
 Thumbs.db
 
-# Knitted output (regenerate with Knit)
-*.html
+
