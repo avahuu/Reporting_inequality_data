@@ -150,39 +150,44 @@ schools_pr <- schools %>%
   add_predictions(schools_mod1) %>%
   add_residuals(schools_mod1)
 
-# Standardize residuals to identify true outliers
-schools_pr$z_score <- as.numeric(scale(schools_pr$resid))
-
-# Schools performing significantly better than expected (z > 2)
+# Schools performing significantly ABOVE expectations (positive residuals)
 outliers_positive <- schools_pr %>%
-  filter(z_score > 2) %>%
-  select(School, County, poorpct, p_passed, pred, resid, z_score) %>%
-  arrange(desc(z_score))
+  filter(resid > 2 * sd(resid, na.rm = TRUE)) %>%
+  arrange(desc(resid))
 
-kable(head(outliers_positive, 10),
-      digits = 2,
-      caption = "Schools performing significantly above expectations (z-score > 2)")
-```
-
-```{r outliers-negative}
-# Schools performing significantly below expected (z < -2)
+# Schools performing significantly BELOW expectations (negative residuals)
 outliers_negative <- schools_pr %>%
-  filter(z_score < -2) %>%
-  select(School, County, poorpct, p_passed, pred, resid, z_score) %>%
-  arrange(z_score)
-
-kable(head(outliers_negative, 10),
-      digits = 2,
-      caption = "Schools performing significantly below expectations (z-score < -2)")
+  filter(resid < -2 * sd(resid, na.rm = TRUE)) %>%
+  arrange(resid)
 ```
 
+**Schools outperforming expectations** (pass rate much higher than predicted by poverty level):
 
-## Key Takeaways
+```{r show-positive}
+kable(outliers_positive %>% select(Name, poorpct, p_passed, pred, resid),
+      col.names = c("School", "Poverty %", "Pass Rate", "Predicted", "Residual"),
+      digits = 1,
+      caption = "Schools with large positive residuals")
+```
 
-1. **GNI is a powerful predictor**: A single variable (GNI) explains 87% of variation in health expenditure across countries.
-2. **Adding variables isn't always better**: Unemployment added no predictive value to the model.
-3. **Poverty strongly predicts academic outcomes**: In California schools, poverty rate is significantly associated with lower pass rates.
-4. **Outlier schools tell stories**: Residual analysis reveals schools that defy expectations — both positively and negatively — which can guide further reporting and investigation.
+**Schools underperforming expectations** (pass rate much lower than predicted):
+
+```{r show-negative}
+kable(outliers_negative %>% select(Name, poorpct, p_passed, pred, resid),
+      col.names = c("School", "Poverty %", "Pass Rate", "Predicted", "Residual"),
+      digits = 1,
+      caption = "Schools with large negative residuals")
+```
+
+```{r residual-plot, fig.width=8, fig.height=6}
+ggplot(schools_pr, aes(x = poorpct, y = resid)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(title = "Residual Plot: Poverty vs. Model Residuals",
+       x = "Percent of Students in Poverty",
+       y = "Residual (Actual - Predicted)") +
+  theme_minimal()
+```
 
 ---
 
